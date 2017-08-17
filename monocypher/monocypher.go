@@ -27,8 +27,6 @@ func Lock(plaintext, nonce, key string) (mac, ciphertext []byte) {
 	// const uint8_t  nonce[24],
 	// const uint8_t *plaintext, size_t text_size);
 
-	// var pPlain *C.uint8_t
-	// Gplain := []uint8(plaintext)
 	Csize := (C.size_t)(len(plaintext))
 	Cplain := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(plaintext))))
 	defer C.free(unsafe.Pointer(Cplain))
@@ -36,31 +34,50 @@ func Lock(plaintext, nonce, key string) (mac, ciphertext []byte) {
 	defer C.free(unsafe.Pointer(Ckey))
 	Cnonce := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(nonce[:24]))))
 	defer C.free(unsafe.Pointer(Cnonce))
-	Cmac := (*C.uint8_t)(unsafe.Pointer(C.calloc(16, 8)))
+	Cmac := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, 16))))
 	defer C.free(unsafe.Pointer(Cmac))
-	Ccipher := (*C.uint8_t)(unsafe.Pointer(C.calloc(Csize, 8)))
+	Ccipher := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, len(plaintext)))))
 	defer C.free(unsafe.Pointer(Ccipher))
-
-	// defer C.free(Csize)
-	// var Ccipher *C.uint8_t
-	// Ccipher := make([]*C.uint8_t, Gsize)
+	//	C Method call
 	C.crypto_lock(Cmac, Ccipher, Ckey, Cnonce, Cplain, Csize)
-	var Ncipher []byte = C.GoBytes(unsafe.Pointer(&Ccipher), C.int(Csize))
-	var Nmac []byte = C.GoBytes(unsafe.Pointer(&mac), C.int(Csize))
-	// var Pcipher *byte = Ncipher
-	fmt.Println(Ncipher, Nmac)
-	// return string(Nmac), string(Ncipher)
-	// var Ncipher *byte = unsafe.Pointer(&Ccipher)
-	// var Nmac *byte = unsafe.Pointer(&mac)
+	// fmt.Println(&Ccipher, &Cmac)
+	// Converting CTypes back to Go
+	var Ncipher []byte = C.GoBytes(unsafe.Pointer(Ccipher), C.int(len(plaintext)))
+	var Nmac []byte = C.GoBytes(unsafe.Pointer(Cmac), C.int(16))
 	return Nmac, Ncipher
 }
 
-func Unlock() {
+// Unlock decrypts the message back into plaintext
+func Unlock(mac, ciphertext []byte, nonce, key string) (plaintext []byte) {
 	// int crypto_unlock(uint8_t       *plaintext,
 	// const uint8_t  key[32],
 	// const uint8_t  nonce[24],
 	// const uint8_t  mac[16],
 	// const uint8_t *ciphertext, size_t text_size);
+
+	Csize := (C.size_t)(len(ciphertext))
+	Ccipher := (*C.uint8_t)(unsafe.Pointer(C.CBytes(ciphertext)))
+	defer C.free(unsafe.Pointer(Ccipher))
+
+	Ckey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(key[:32]))))
+	defer C.free(unsafe.Pointer(Ckey))
+	Cnonce := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(nonce[:24]))))
+	defer C.free(unsafe.Pointer(Cnonce))
+	Cmac := (*C.uint8_t)(unsafe.Pointer(C.CBytes(mac)))
+	defer C.free(unsafe.Pointer(Cmac))
+	Cplain := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, len(ciphertext)))))
+	defer C.free(unsafe.Pointer(Cplain))
+	//	C Method call
+	C.crypto_unlock(Cplain, Ckey, Cnonce, Cmac, Ccipher, Csize)
+	// fmt.Println(Cplain)
+	// // Converting CTypes back to Go
+	// var Nplain []byte = C.GoBytes(unsafe.Pointer(Cplain), C.int(len(ciphertext)))
+	var Nmac []byte = C.GoBytes(unsafe.Pointer(Ckey), C.int(32))
+	fmt.Println(len(Nmac), Nmac)
+	var Nplain []byte = C.GoBytes(unsafe.Pointer(Cplain), C.int(len(ciphertext)))
+	// return Nmac, Ncipher
+
+	return Nplain
 }
 
 func Crypto_aead_lock() {
