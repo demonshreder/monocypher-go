@@ -8,9 +8,9 @@ import "C"
 
 import "unsafe"
 
-// Lock is authenticated encryption using XChacha20 & Poly1305
-// Lock takes plaintext, nonce and key, returns the mac and the
-// ciphertext
+// Lock is authenticated encryption using XChacha20 & Poly1305.
+// Lock takes plaintext, [24]nonce and [32]key, returns the [16]mac and the
+// ciphertext.
 func Lock(plaintext, nonce, key []byte) (mac, ciphertext []byte) {
 	// func Lock(plaintext, nonce, key string) (mac, ciphertext string) {
 	// void crypto_lock(uint8_t        mac[16],
@@ -19,63 +19,58 @@ func Lock(plaintext, nonce, key []byte) (mac, ciphertext []byte) {
 	// const uint8_t  nonce[24],
 	// const uint8_t *plaintext, size_t text_size);
 
-	Csize := (C.size_t)(len(plaintext))
-	Cplain := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(plaintext))))
-	defer C.free(unsafe.Pointer(Cplain))
-	Ckey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(key[:32]))))
-	defer C.free(unsafe.Pointer(Ckey))
-	Cnonce := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(nonce[:24]))))
-	defer C.free(unsafe.Pointer(Cnonce))
-	Cmac := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, 16))))
-	defer C.free(unsafe.Pointer(Cmac))
-	Ccipher := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, len(plaintext)))))
-	defer C.free(unsafe.Pointer(Ccipher))
+	CSize := (C.size_t)(len(plaintext))
+	CPlain := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(plaintext))))
+	defer C.free(unsafe.Pointer(CPlain))
+	CKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(key[:32]))))
+	defer C.free(unsafe.Pointer(CKey))
+	CNonce := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(nonce[:24]))))
+	defer C.free(unsafe.Pointer(CNonce))
+	CMac := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, 16))))
+	defer C.free(unsafe.Pointer(CMac))
+	CCipher := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, len(plaintext)))))
+	defer C.free(unsafe.Pointer(CCipher))
 	//	C Method call
-	C.crypto_lock(Cmac, Ccipher, Ckey, Cnonce, Cplain, Csize)
+	C.crypto_lock(CMac, CCipher, CKey, CNonce, CPlain, CSize)
 	// Converting CTypes back to Go
-	var Ncipher []byte = C.GoBytes(unsafe.Pointer(Ccipher), C.int(len(plaintext)))
-	var Nmac []byte = C.GoBytes(unsafe.Pointer(Cmac), C.int(16))
-	return Nmac, Ncipher
+	var GCipher []byte = C.GoBytes(unsafe.Pointer(CCipher), C.int(len(plaintext)))
+	var GMac []byte = C.GoBytes(unsafe.Pointer(CMac), C.int(16))
+	return GMac, GCipher
 }
 
-// Unlock decrypts the ciphertext from Lock. It first checks the integrity
-// using mac, then uses the same nonce and key to decrypt the cipher and
-// returns the plaintext in bytes.
-func Unlock(mac, ciphertext, nonce, key []byte) (plaintext []byte) {
+// Unlock decrypts the ciphertext from Lock(). It first checks the integrity
+// using mac, then uses the same [24]nonce and [32]key to decrypt the cipher
+// and returns the plaintext in bytes.
+func Unlock(ciphertext, nonce, key, mac []byte) (plaintext []byte) {
 	// int crypto_unlock(uint8_t       *plaintext,
 	// const uint8_t  key[32],
 	// const uint8_t  nonce[24],
 	// const uint8_t  mac[16],
 	// const uint8_t *ciphertext, size_t text_size);
 
-	Csize := (C.size_t)(len(ciphertext))
-	Ccipher := (*C.uint8_t)(unsafe.Pointer(C.CBytes(ciphertext)))
-	defer C.free(unsafe.Pointer(Ccipher))
+	CSize := (C.size_t)(len(ciphertext))
+	CCipher := (*C.uint8_t)(unsafe.Pointer(C.CBytes(ciphertext)))
+	defer C.free(unsafe.Pointer(CCipher))
 
-	Ckey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(key[:32]))))
-	defer C.free(unsafe.Pointer(Ckey))
-	Cnonce := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(nonce[:24]))))
-	defer C.free(unsafe.Pointer(Cnonce))
-	Cmac := (*C.uint8_t)(unsafe.Pointer(C.CBytes(mac)))
-	defer C.free(unsafe.Pointer(Cmac))
-	Cplain := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, len(ciphertext)))))
-	defer C.free(unsafe.Pointer(Cplain))
+	CKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(key[:32]))))
+	defer C.free(unsafe.Pointer(CKey))
+	CNonce := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(nonce[:24]))))
+	defer C.free(unsafe.Pointer(CNonce))
+	CMac := (*C.uint8_t)(unsafe.Pointer(C.CBytes(mac)))
+	defer C.free(unsafe.Pointer(CMac))
+	CPlain := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, len(ciphertext)))))
+	defer C.free(unsafe.Pointer(CPlain))
 	//	C Method call
-	C.crypto_unlock(Cplain, Ckey, Cnonce, Cmac, Ccipher, Csize)
-	// fmt.Println(Cplain)
-	// // Converting CTypes back to Go
-	// var Nplain []byte = C.GoBytes(unsafe.Pointer(Cplain), C.int(len(ciphertext)))
-	// var Nmac []byte = C.GoBytes(unsafe.Pointer(Ckey), C.int(32))
-	// fmt.Println(len(Nmac), Nmac)
-	var Nplain []byte = C.GoBytes(unsafe.Pointer(Cplain), C.int(len(ciphertext)))
+	C.crypto_unlock(CPlain, CKey, CNonce, CMac, CCipher, CSize)
+	var GPlain []byte = C.GoBytes(unsafe.Pointer(CPlain), C.int(len(ciphertext)))
 	// return Nmac, Ncipher
 
-	return Nplain
+	return GPlain
 }
 
-// AeadLock allows some additional data to be signed though not
-// encrypted with the rest. AeadLock returns mac, ciphertext and the authenticated
-// text.
+// AeadLock is the same as Lock() but allows some additional data to be signed
+// though not encrypted with the rest. AeadLock returns mac, ciphertext and the
+// authenticated text.
 func AeadLock(plaintext, nonce, key, addData []byte) (mac, ciphertext, data []byte) {
 	// void crypto_aead_lock(uint8_t        mac[16],
 	// uint8_t       *ciphertext,
@@ -84,32 +79,32 @@ func AeadLock(plaintext, nonce, key, addData []byte) (mac, ciphertext, data []by
 	// const uint8_t *ad       , size_t ad_size,
 	// const uint8_t *plaintext, size_t text_size);
 
-	CadSize := (C.size_t)(len(addData))
-	Cad := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(addData))))
-	defer C.free(unsafe.Pointer(Cad))
-	CtextSize := (C.size_t)(len(plaintext))
-	Cplain := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(plaintext))))
-	defer C.free(unsafe.Pointer(Cplain))
-	Ckey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(key[:32]))))
-	defer C.free(unsafe.Pointer(Ckey))
-	Cnonce := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(nonce[:24]))))
-	defer C.free(unsafe.Pointer(Cnonce))
-	Cmac := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, 16))))
-	defer C.free(unsafe.Pointer(Cmac))
-	Ccipher := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, len(plaintext)))))
-	defer C.free(unsafe.Pointer(Ccipher))
+	CAdDataSize := (C.size_t)(len(addData))
+	CAdData := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(addData))))
+	defer C.free(unsafe.Pointer(CAdData))
+	CTextSize := (C.size_t)(len(plaintext))
+	CPlain := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(plaintext))))
+	defer C.free(unsafe.Pointer(CPlain))
+	CKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(key[:32]))))
+	defer C.free(unsafe.Pointer(CKey))
+	CNonce := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(nonce[:24]))))
+	defer C.free(unsafe.Pointer(CNonce))
+	CMac := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, 16))))
+	defer C.free(unsafe.Pointer(CMac))
+	CCipher := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, len(plaintext)))))
+	defer C.free(unsafe.Pointer(CCipher))
 	//	C Method call
-	C.crypto_aead_lock(Cmac, Ccipher, Ckey, Cnonce, Cad, CadSize, Cplain, CtextSize)
+	C.crypto_aead_lock(CMac, CCipher, CKey, CNonce, CAdData, CAdDataSize, CPlain, CTextSize)
 	// Converting CTypes back to Go
-	var Ncipher []byte = C.GoBytes(unsafe.Pointer(Ccipher), C.int(len(plaintext)))
-	var Nmac []byte = C.GoBytes(unsafe.Pointer(Cmac), C.int(16))
-	var Nad []byte = C.GoBytes(unsafe.Pointer(Cad), C.int(CadSize))
-	return Nmac, Ncipher, Nad
+	var GCipherText []byte = C.GoBytes(unsafe.Pointer(CCipher), C.int(len(plaintext)))
+	var GMac []byte = C.GoBytes(unsafe.Pointer(CMac), C.int(16))
+	var GAdData []byte = C.GoBytes(unsafe.Pointer(CAdData), C.int(CAdDataSize))
+	return GMac, GCipherText, GAdData
 }
 
-// AeadUnlock takes mac, ciphertext, nonce, key and authenticated data, returns
-// the deciphered plaintext.
-func AeadUnlock(mac, ciphertext, nonce, key, addData []byte) (plaintext []byte) {
+// AeadUnlock is the same as Unlock(), but checks authenticated
+// data and returns the deciphered plaintext.
+func AeadUnlock(ciphertext, nonce, key, mac, addData []byte) (plaintext []byte) {
 	// int crypto_aead_unlock(uint8_t       *plaintext,
 	// const uint8_t  key[32],
 	// const uint8_t  nonce[24],
@@ -117,42 +112,79 @@ func AeadUnlock(mac, ciphertext, nonce, key, addData []byte) (plaintext []byte) 
 	// const uint8_t *ad        , size_t ad_size,
 	// const uint8_t *ciphertext, size_t text_size);
 
-	CadSize := (C.size_t)(len(addData))
-	Cad := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(addData))))
-	defer C.free(unsafe.Pointer(Cad))
-	Csize := (C.size_t)(len(ciphertext))
-	Ccipher := (*C.uint8_t)(unsafe.Pointer(C.CBytes(ciphertext)))
-	defer C.free(unsafe.Pointer(Ccipher))
-	Ckey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(key[:32]))))
-	defer C.free(unsafe.Pointer(Ckey))
-	Cnonce := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(nonce[:24]))))
-	defer C.free(unsafe.Pointer(Cnonce))
-	Cmac := (*C.uint8_t)(unsafe.Pointer(C.CBytes(mac)))
-	defer C.free(unsafe.Pointer(Cmac))
-	Cplain := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, len(ciphertext)))))
-	defer C.free(unsafe.Pointer(Cplain))
+	CAdDataSize := (C.size_t)(len(addData))
+	CAdData := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(addData))))
+	defer C.free(unsafe.Pointer(CAdData))
+	CCipherSize := (C.size_t)(len(ciphertext))
+	CCipherText := (*C.uint8_t)(unsafe.Pointer(C.CBytes(ciphertext)))
+	defer C.free(unsafe.Pointer(CCipherText))
+	CKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(key[:32]))))
+	defer C.free(unsafe.Pointer(CKey))
+	CNonce := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(nonce[:24]))))
+	defer C.free(unsafe.Pointer(CNonce))
+	CMac := (*C.uint8_t)(unsafe.Pointer(C.CBytes(mac)))
+	defer C.free(unsafe.Pointer(CMac))
+	CPlainText := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, len(ciphertext)))))
+	defer C.free(unsafe.Pointer(CPlainText))
 	//	C Method call
-	C.crypto_aead_unlock(Cplain, Ckey, Cnonce, Cmac, Cad, CadSize, Ccipher, Csize)
+	C.crypto_aead_unlock(CPlainText, CKey, CNonce, CMac, CAdData, CAdDataSize, CCipherText, CCipherSize)
 	// Converting CTypes back to Go
-	var Nplain []byte = C.GoBytes(unsafe.Pointer(Cplain), C.int(len(ciphertext)))
+	var GPlainText []byte = C.GoBytes(unsafe.Pointer(CPlainText), C.int(len(ciphertext)))
 	// return Nmac, Ncipher
 
-	return Nplain
+	return GPlainText
 }
 
-func crypto_sign() {
-	// void crypto_sign(uint8_t        signature[64],
-	// const uint8_t  secret_key[32],
-	// const uint8_t  public_key[32], // optional, may be null
-	// const uint8_t *message, size_t message_size);
+// // Sign signs a message with your secret key. The public key is optional, and will be recomputed
+// // if you don't provide it. It's twice as slow, though.
+// func Sign(message, secretKey, publicKey []byte) (signature []byte) {
+// 	// void crypto_sign(uint8_t        signature[64],
+// 	// const uint8_t  secret_key[32],
+// 	// const uint8_t  public_key[32], // optional, may be null
+// 	// const uint8_t *message, size_t message_size);
+// 	CSign := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, 64))))
+// 	defer C.free(unsafe.Pointer(CSign))
+// 	CSize := (C.size_t)(len(message))
+// 	CMessage := (*C.uint8_t)(unsafe.Pointer(C.CBytes(message)))
+// 	defer C.free(unsafe.Pointer(CMessage))
+// 	CPubKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(publicKey[:32]))))
+// 	defer C.free(unsafe.Pointer(CPubKey))
+// 	CSecKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(secretKey[:32]))))
+// 	defer C.free(unsafe.Pointer(CSecKey))
+// 	//	C Method call
+// 	C.crypto_sign(CSign, CSecKey, CPubKey, CMessage, CSize)
+// 	// Converting CTypes back to Go
+// 	var GSign []byte = C.GoBytes(unsafe.Pointer(CSign), C.int(64))
+// 	// var GMessage []byte = C.GoBytes(unsafe.Pointer(CMessage), C.int(len(message)))
+// 	// return Nmac, Ncipher
+// 	return GSign
+// }
 
-}
-
-func crypto_check() {
-	// int crypto_check(const uint8_t  signature[64],
-	// const uint8_t  public_key[32],
-	// const uint8_t *message, size_t message_size);
-}
+// //Check is not working
+// func CheckSign(message, publicKey, signature []byte) (result int) {
+// 	// int crypto_check(const uint8_t  signature[64],
+// 	// const uint8_t  public_key[32],
+// 	// const uint8_t *message, size_t message_size);
+// 	CSign := (*C.uint8_t)(unsafe.Pointer(C.CBytes(signature)))
+// 	defer C.free(unsafe.Pointer(CSign))
+// 	CSize := (C.size_t)(len(message))
+// 	CMessage := (*C.uint8_t)(unsafe.Pointer(C.CBytes(message)))
+// 	defer C.free(unsafe.Pointer(CMessage))
+// 	CPubKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(publicKey[:32]))))
+// 	defer C.free(unsafe.Pointer(CPubKey))
+// 	// CSecKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes(secretKey)))
+// 	// defer C.free(unsafe.Pointer(CSecKey))
+// 	CResult := C.int(0)
+// 	// defer C.free(unsafe.Pointer(CResult))
+// 	//	C Method call
+// 	CResult = C.crypto_check(CSign, CPubKey, CMessage, CSize)
+// 	// Converting CTypes back to Go
+// 	var GResult []byte = C.GoBytes(unsafe.Pointer(&CResult), C.int(64))
+// 	fmt.Println(GResult)
+// 	// var GMessage []byte = C.GoBytes(unsafe.Pointer(CMessage), C.int(len(message)))
+// 	// return Nmac, Ncipher
+// 	return int(GResult[0])
+// }
 
 func crypto_key_exchange() {
 	// int crypto_key_exchange(uint8_t       shared_key      [32],
