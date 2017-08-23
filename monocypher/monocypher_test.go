@@ -43,21 +43,28 @@ func ExampleAeadUnlock() {
 	// Output: Hello this is Gopher army, we are gonna rule this world
 }
 
-// func ExampleSign() {
-// 	message := []byte("Hello this is Gopher army, we are gonna rule this world ")
-// 	secretKey := []byte("Gophers are such a fun thing. Hehehehehe")
-// 	publicKey := []byte("Hacking Hacking guys this is so much fun")
-// 	signature := Sign(message, publicKey, secretKey)
-// 	fmt.Println(signature)
-// 	// Output: [6 120 71 136 49 158 172 155 206 95 57 178 10 207 175 117 246 61 24 39 195 95 41 84 90 105 120 173 99 109 85 117 26 83 150 48 192 87 2 97 206 3 72 5 181 214 237 172 118 86 111 2 118 216 51 238 39 150 87 204 246 55 101 14]
-// }
+func ExampleSignPublicKey() {
+	secretKey := []byte("Gophers are such a fun thing. Hehehehehe")
+	publicKey := SignPublicKey(secretKey)
+	// fmt.Println(base32.StdEncoding.EncodeToString(publicKey))
+	fmt.Println(publicKey)
+	// Output: [224 191 49 187 175 40 57 91 163 14 204 126 226 196 209 163 20 55 100 80 214 24 49 221 59 62 177 82 191 215 161 202]
+}
 
-// func ExampleCheckSign() {
-// 	message := []byte("Hello this is Gopher army, we are gonna rule this world ")
-// 	// secretKey := []byte("Gophers are such a fun thing. Hehehehehe")
-// 	publicKey := []byte("Hacking Hacking guys this is so much fun")
-// 	signature := []byte{6, 120, 71, 247, 49, 158, 172, 155, 206, 95, 57, 178, 10, 207, 175, 117, 246, 61, 24, 39, 195, 95, 41, 84, 90, 105, 120, 173, 99, 109, 85, 117, 26, 83, 150, 48, 192, 87, 2, 97, 206, 3, 72, 5, 181, 214, 237, 172, 118, 86, 111, 2, 118, 216, 51, 238, 39, 150, 87, 204, 246, 55, 101, 14}
-// 	result := CheckSign(message, publicKey, signature)
-// 	fmt.Println(result)
-// 	// Output: 0
-// }
+func ExampleSign() {
+	message := []byte("Hello this is Gopher army, we are gonna rule this world ")
+	secretKey := []byte("Gophers are such a fun thing. Hehehehehe")
+	signature, publicKey := Sign(message, secretKey)
+	// fmt.Println(base64.StdEncoding.EncodeToString(signature))
+	fmt.Println(signature, publicKey)
+	// Output: [64 83 187 13 39 201 125 215 140 212 100 97 25 240 239 101 170 124 81 142 173 70 89 232 17 124 95 189 39 182 66 111 153 207 243 14 148 184 184 56 135 72 37 141 143 144 199 167 211 78 36 123 9 142 40 236 178 110 81 169 156 117 202 5] [224 191 49 187 175 40 57 91 163 14 204 126 226 196 209 163 20 55 100 80 214 24 49 221 59 62 177 82 191 215 161 202]
+}
+
+func ExampleCheckSign() {
+	message := []byte("Hello this is Gopher army, we are gonna rule this world ")
+	publicKey := []byte{224, 191, 49, 187, 175, 40, 57, 91, 163, 14, 204, 126, 226, 196, 209, 163, 20, 55, 100, 80, 214, 24, 49, 221, 59, 62, 177, 82, 191, 215, 161, 202}
+	signature := []byte{64, 83, 187, 13, 39, 201, 125, 215, 140, 212, 100, 97, 25, 240, 239, 101, 170, 124, 81, 142, 173, 70, 89, 232, 17, 124, 95, 189, 39, 182, 66, 111, 153, 207, 243, 14, 148, 184, 184, 56, 135, 72, 37, 141, 143, 144, 199, 167, 211, 78, 36, 123, 9, 142, 40, 236, 178, 110, 81, 169, 156, 117, 202, 5}
+	result := CheckSign(message, publicKey, signature)
+	fmt.Println(result)
+	// Output: true
+}

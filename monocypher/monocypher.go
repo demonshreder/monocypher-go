@@ -135,56 +135,74 @@ func AeadUnlock(ciphertext, nonce, key, mac, addData []byte) (plaintext []byte) 
 	return GPlainText
 }
 
-// // Sign signs a message with your secret key. The public key is optional, and will be recomputed
-// // if you don't provide it. It's twice as slow, though.
-// func Sign(message, secretKey, publicKey []byte) (signature []byte) {
-// 	// void crypto_sign(uint8_t        signature[64],
-// 	// const uint8_t  secret_key[32],
-// 	// const uint8_t  public_key[32], // optional, may be null
-// 	// const uint8_t *message, size_t message_size);
-// 	CSign := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, 64))))
-// 	defer C.free(unsafe.Pointer(CSign))
-// 	CSize := (C.size_t)(len(message))
-// 	CMessage := (*C.uint8_t)(unsafe.Pointer(C.CBytes(message)))
-// 	defer C.free(unsafe.Pointer(CMessage))
-// 	CPubKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(publicKey[:32]))))
-// 	defer C.free(unsafe.Pointer(CPubKey))
-// 	CSecKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(secretKey[:32]))))
-// 	defer C.free(unsafe.Pointer(CSecKey))
-// 	//	C Method call
-// 	C.crypto_sign(CSign, CSecKey, CPubKey, CMessage, CSize)
-// 	// Converting CTypes back to Go
-// 	var GSign []byte = C.GoBytes(unsafe.Pointer(CSign), C.int(64))
-// 	// var GMessage []byte = C.GoBytes(unsafe.Pointer(CMessage), C.int(len(message)))
-// 	// return Nmac, Ncipher
-// 	return GSign
-// }
+// SignPublicKey is blake2b based curve25519 public key generator
+// meant for signing messages alone.
+func SignPublicKey(secretKey []byte) (publicKey []byte) {
+	// void crypto_sign_public_key(uint8_t        public_key[32],
+	// const uint8_t  secret_key[32]);
 
-// //Check is not working
-// func CheckSign(message, publicKey, signature []byte) (result int) {
-// 	// int crypto_check(const uint8_t  signature[64],
-// 	// const uint8_t  public_key[32],
-// 	// const uint8_t *message, size_t message_size);
-// 	CSign := (*C.uint8_t)(unsafe.Pointer(C.CBytes(signature)))
-// 	defer C.free(unsafe.Pointer(CSign))
-// 	CSize := (C.size_t)(len(message))
-// 	CMessage := (*C.uint8_t)(unsafe.Pointer(C.CBytes(message)))
-// 	defer C.free(unsafe.Pointer(CMessage))
-// 	CPubKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(publicKey[:32]))))
-// 	defer C.free(unsafe.Pointer(CPubKey))
-// 	// CSecKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes(secretKey)))
-// 	// defer C.free(unsafe.Pointer(CSecKey))
-// 	CResult := C.int(0)
-// 	// defer C.free(unsafe.Pointer(CResult))
-// 	//	C Method call
-// 	CResult = C.crypto_check(CSign, CPubKey, CMessage, CSize)
-// 	// Converting CTypes back to Go
-// 	var GResult []byte = C.GoBytes(unsafe.Pointer(&CResult), C.int(64))
-// 	fmt.Println(GResult)
-// 	// var GMessage []byte = C.GoBytes(unsafe.Pointer(CMessage), C.int(len(message)))
-// 	// return Nmac, Ncipher
-// 	return int(GResult[0])
-// }
+	CSecKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(secretKey[:32]))))
+	defer C.free(unsafe.Pointer(CSecKey))
+	CPubKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, 32))))
+	defer C.free(unsafe.Pointer(CPubKey))
+	//	C Method call
+	C.crypto_sign_public_key(CPubKey, CSecKey)
+	// Converting CTypes back to Go
+	var GPubKey []byte = C.GoBytes(unsafe.Pointer(CPubKey), C.int(32))
+	return GPubKey
+}
+
+// Sign signs a message with your secret key. The generated curve25519
+// public key along with the signature is returned.
+func Sign(message, secretKey []byte) (signature, publicKey []byte) {
+	// void crypto_sign(uint8_t        signature[64],
+	// const uint8_t  secret_key[32],
+	// const uint8_t  public_key[32], // optional, may be null
+	// const uint8_t *message, size_t message_size);
+
+	CSign := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, 64))))
+	defer C.free(unsafe.Pointer(CSign))
+	CSize := (C.size_t)(len(message))
+	CMessage := (*C.uint8_t)(unsafe.Pointer(C.CBytes(message)))
+	defer C.free(unsafe.Pointer(CMessage))
+	CPubKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes(make([]uint8, 32))))
+	defer C.free(unsafe.Pointer(CPubKey))
+	CSecKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(secretKey[:32]))))
+	defer C.free(unsafe.Pointer(CSecKey))
+	//	C Method call
+	C.crypto_sign_public_key(CPubKey, CSecKey)
+	C.crypto_sign(CSign, CSecKey, CPubKey, CMessage, CSize)
+	// Converting CTypes back to Go
+	var GSign []byte = C.GoBytes(unsafe.Pointer(CSign), C.int(64))
+	var GPubKey []byte = C.GoBytes(unsafe.Pointer(CPubKey), C.int(32))
+	return GSign, GPubKey
+}
+
+// CheckSign checks the message and its corresponding public key and signature
+// for validity.
+func CheckSign(message, publicKey, signature []byte) (result bool) {
+	// int crypto_check(const uint8_t  signature[64],
+	// const uint8_t  public_key[32],
+	// const uint8_t *message, size_t message_size);
+
+	CSign := (*C.uint8_t)(C.CBytes(signature))
+	CSize := (C.size_t)(len(message))
+	CMessage := (*C.uint8_t)(unsafe.Pointer(C.CBytes(message)))
+	defer C.free(unsafe.Pointer(CMessage))
+	CPubKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(publicKey[:32]))))
+	defer C.free(unsafe.Pointer(CPubKey))
+	CResult := C.int(0)
+	//	C Method call
+	CResult = C.crypto_check(CSign, CPubKey, CMessage, CSize)
+	// Converting CTypes back to Go
+	var GResult []byte = C.GoBytes(unsafe.Pointer(&CResult), C.int(1))
+	// Original output from C if wrong is -1 which is impossible with
+	// byte being uint8 so hacks.
+	if int(GResult[0]) == 0 {
+		return true
+	}
+	return false
+}
 
 func crypto_key_exchange() {
 	// int crypto_key_exchange(uint8_t       shared_key      [32],
@@ -201,12 +219,6 @@ func crypto_x25519() {
 	// int  crypto_x25519(uint8_t       shared_secret   [32],
 	// const uint8_t your_secret_key [32],
 	// const uint8_t their_public_key[32]);
-}
-
-func crypto_sign_public_key() {
-	// void crypto_sign_public_key(uint8_t        public_key[32],
-	// const uint8_t  secret_key[32]);
-
 }
 
 func crypto_blake2b_general() {
@@ -236,12 +248,7 @@ func crypto_blake2b_update() {
 func crypto_blake2b_final() {
 	// void crypto_blake2b_final(crypto_blake2b_ctx *ctx, uint8_t *digest);
 }
-func crypto_memcmp() {
-	// int crypto_memcmp (const uint8_t *p1, const uint8_t *p2, size_t n);
-}
-func crypto_zerocmp() {
-	// int crypto_zerocmp(const uint8_t *p , size_t n);
-}
+
 func crypto_chacha20_H() {
 	// void crypto_chacha20_H(uint8_t       out[32],
 	// const uint8_t key[32],
