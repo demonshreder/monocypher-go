@@ -12,4 +12,7 @@ Go binding docs - https://godoc.org/github.com/demonshreder/monocypher-go/monocy
 - [x] crypto_unlock - Unlock
 - [x] crypto_aead_lock - AeadLock
 - [x] crypto_aead_unlock - AeadUnlock
+- [x] crypto_sign_public_key - GenPublicKey
+- [x] crypto_sign - SignMessage
+- [x] crypto_check - CheckMessageSignature
 ```

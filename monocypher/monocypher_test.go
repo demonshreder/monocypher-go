@@ -43,28 +43,28 @@ func ExampleAeadUnlock() {
 	// Output: Hello this is Gopher army, we are gonna rule this world
 }
 
-func ExampleSignPublicKey() {
+func ExampleGenPublicKey() {
 	secretKey := []byte("Gophers are such a fun thing. Hehehehehe")
-	publicKey := SignPublicKey(secretKey)
+	publicKey := GenPublicKey(secretKey)
 	// fmt.Println(base32.StdEncoding.EncodeToString(publicKey))
 	fmt.Println(publicKey)
 	// Output: [224 191 49 187 175 40 57 91 163 14 204 126 226 196 209 163 20 55 100 80 214 24 49 221 59 62 177 82 191 215 161 202]
 }
 
-func ExampleSign() {
+func ExampleSignMessage() {
 	message := []byte("Hello this is Gopher army, we are gonna rule this world ")
 	secretKey := []byte("Gophers are such a fun thing. Hehehehehe")
-	signature, publicKey := Sign(message, secretKey)
+	signature, publicKey := SignMessage(message, secretKey)
 	// fmt.Println(base64.StdEncoding.EncodeToString(signature))
 	fmt.Println(signature, publicKey)
 	// Output: [64 83 187 13 39 201 125 215 140 212 100 97 25 240 239 101 170 124 81 142 173 70 89 232 17 124 95 189 39 182 66 111 153 207 243 14 148 184 184 56 135 72 37 141 143 144 199 167 211 78 36 123 9 142 40 236 178 110 81 169 156 117 202 5] [224 191 49 187 175 40 57 91 163 14 204 126 226 196 209 163 20 55 100 80 214 24 49 221 59 62 177 82 191 215 161 202]
 }
 
-func ExampleCheckSign() {
+func ExampleCheckMessageSignature() {
 	message := []byte("Hello this is Gopher army, we are gonna rule this world ")
 	publicKey := []byte{224, 191, 49, 187, 175, 40, 57, 91, 163, 14, 204, 126, 226, 196, 209, 163, 20, 55, 100, 80, 214, 24, 49, 221, 59, 62, 177, 82, 191, 215, 161, 202}
 	signature := []byte{64, 83, 187, 13, 39, 201, 125, 215, 140, 212, 100, 97, 25, 240, 239, 101, 170, 124, 81, 142, 173, 70, 89, 232, 17, 124, 95, 189, 39, 182, 66, 111, 153, 207, 243, 14, 148, 184, 184, 56, 135, 72, 37, 141, 143, 144, 199, 167, 211, 78, 36, 123, 9, 142, 40, 236, 178, 110, 81, 169, 156, 117, 202, 5}
-	result := CheckSign(message, publicKey, signature)
+	result := CheckMessageSignature(message, publicKey, signature)
 	fmt.Println(result)
 	// Output: true
 }

@@ -137,7 +137,7 @@ func AeadUnlock(ciphertext, nonce, key, mac, addData []byte) (plaintext []byte) 
 
 // SignPublicKey is blake2b based curve25519 public key generator
 // meant for signing messages alone.
-func SignPublicKey(secretKey []byte) (publicKey []byte) {
+func GenPublicKey(secretKey []byte) (publicKey []byte) {
 	// void crypto_sign_public_key(uint8_t        public_key[32],
 	// const uint8_t  secret_key[32]);
 
@@ -152,9 +152,9 @@ func SignPublicKey(secretKey []byte) (publicKey []byte) {
 	return GPubKey
 }
 
-// Sign signs a message with your secret key. The generated curve25519
+// Sign signs a message with your secret key. The generated curve225519
 // public key along with the signature is returned.
-func Sign(message, secretKey []byte) (signature, publicKey []byte) {
+func SignMessage(message, secretKey []byte) (signature, publicKey []byte) {
 	// void crypto_sign(uint8_t        signature[64],
 	// const uint8_t  secret_key[32],
 	// const uint8_t  public_key[32], // optional, may be null
@@ -180,7 +180,7 @@ func Sign(message, secretKey []byte) (signature, publicKey []byte) {
 
 // CheckSign checks the message and its corresponding public key and signature
 // for validity.
-func CheckSign(message, publicKey, signature []byte) (result bool) {
+func CheckMessageSignature(message, publicKey, signature []byte) (result bool) {
 	// int crypto_check(const uint8_t  signature[64],
 	// const uint8_t  public_key[32],
 	// const uint8_t *message, size_t message_size);
