@@ -228,11 +228,16 @@ func KeyExchange(secretKey, theirPublicKey []byte)(sharedKey []byte, validity bo
   	return true, GSharedKey
 }
 
-
-func crypto_x25519_public_key() {
+// Computes public key from specified (random) secret key.
+func X25519PublicKey(publicKey, secretKey) {
 	// void crypto_x25519_public_key(uint8_t       public_key[32],
 	// const uint8_t secret_key[32]);
-
+	CPublicKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(publicKey[:32]))))
+	defer C.free(unsafe.Pointer(CPublicKey))
+	CSecretKey := (*C.uint8_t)(unsafe.Pointer(C.CBytes([]uint8(secretKey[:32]))))
+	defer C.free(unsafe.Pointer(CSecretKey))
+	C.crypto_x25519_public_key(CPublicKey, CSecretKey)
+	publicKey = C.GoBytes(unsafe.Pointer(&CResult))
 }
 
 func crypto_x25519() {
