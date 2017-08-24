@@ -204,11 +204,31 @@ func CheckMessageSignature(message, publicKey, signature []byte) (result bool) {
 	return false
 }
 
-func crypto_key_exchange() {
+
+// KeyExchange computes a shared key with your secret key & their public key, for the Lock() function above.
+// It performs X25519 key exchange and hashes the key with HChacha20 to get a fairly random shared key.
+func KeyExchange(secretKey, theirPublicKey []byte)(sharedKey []byte, validity bool) {
 	// int crypto_key_exchange(uint8_t       shared_key      [32],
 	// const uint8_t your_secret_key [32],
 	// const uint8_t their_public_key[32]);
+  
+  	CSharedKey := (*C.uint8_t)(C.CBytes(make([]uint8,32))
+  	CSecretKey := (*C.uint8_t)(C.CBytes(secretKey))
+  	CTheirPublicKey := (*C.uint8_t)(C.CBytes(theirPublicKey))
+  
+ 	CResult := C.int(0)
+  	// C Method call
+ 	CResult = C.crypto_key_exchange(CSharedKey, CSecretKey, CTheirPublicKey)
+ 	// Converting CTypes back to Go
+	var GResult []byte = C.GoBytes(unsafe.Pointer(&CResult), C.int(1))
+  	if int(GResult[0]) == 0 {
+		return true
+	}
+	return false
+  	return true, GSharedKey
 }
+
+
 func crypto_x25519_public_key() {
 	// void crypto_x25519_public_key(uint8_t       public_key[32],
 	// const uint8_t secret_key[32]);
